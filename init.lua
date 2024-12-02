@@ -138,6 +138,7 @@ vim.opt.rtp:prepend(lazypath)
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+  'tpope/vim-fugitive',
 
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
@@ -202,6 +203,10 @@ require('lazy').setup({
     },
   },
 
+  {
+      'sindrets/diffview.nvim',
+      requires = 'nvim-lua/plenary.nvim'
+  },
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
   --
   -- This is often very useful to both group configuration, as well as handle
@@ -613,48 +618,48 @@ require('lazy').setup({
     end,
   },
 
-  { -- Autoformat
-    'stevearc/conform.nvim',
-    event = { 'BufWritePre' },
-    cmd = { 'ConformInfo' },
-    keys = {
-      {
-        '<leader>f',
-        function()
-          require('conform').format { async = true, lsp_format = 'fallback' }
-        end,
-        mode = '',
-        desc = '[F]ormat buffer',
-      },
-    },
-    opts = {
-      notify_on_error = false,
-      format_on_save = function(bufnr)
-        -- Disable "format_on_save lsp_fallback" for languages that don't
-        -- have a well standardized coding style. You can add additional
-        -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
-        local lsp_format_opt
-        if disable_filetypes[vim.bo[bufnr].filetype] then
-          lsp_format_opt = 'never'
-        else
-          lsp_format_opt = 'fallback'
-        end
-        return {
-          timeout_ms = 500,
-          lsp_format = lsp_format_opt,
-        }
-      end,
-      formatters_by_ft = {
-        lua = { 'stylua' },
-        -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
-        --
-        -- You can use 'stop_after_first' to run the first available formatter from the list
-        -- javascript = { "prettierd", "prettier", stop_after_first = true },
-      },
-    },
-  },
+  --  { -- Autoformat
+  --    'stevearc/conform.nvim',
+  --    event = { 'BufWritePre' },
+  --    cmd = { 'ConformInfo' },
+  --    keys = {
+  --      {
+  --        '<leader>f',
+  --        function()
+  --          require('conform').format { async = true, lsp_format = 'fallback' }
+  --        end,
+  --        mode = '',
+  --        desc = '[F]ormat buffer',
+  --      },
+  --    },
+  --    opts = {
+  --      notify_on_error = false,
+  --      format_on_save = function(bufnr)
+  --        -- Disable "format_on_save lsp_fallback" for languages that don't
+  --        -- have a well standardized coding style. You can add additional
+  --        -- languages here or re-enable it for the disabled ones.
+  --        local disable_filetypes = { c = true, cpp = true }
+  --        local lsp_format_opt
+  --        if disable_filetypes[vim.bo[bufnr].filetype] then
+  --          lsp_format_opt = 'never'
+  --        else
+  --          lsp_format_opt = 'fallback'
+  --        end
+  --        return {
+  --          timeout_ms = 500,
+  --          lsp_format = lsp_format_opt,
+  --        }
+  --      end,
+  --      formatters_by_ft = {
+  --        lua = { 'stylua' },
+  --        -- Conform can also run multiple formatters sequentially
+  --        -- python = { "isort", "black" },
+  --        --
+  --        -- You can use 'stop_after_first' to run the first available formatter from the list
+  --        -- javascript = { "prettierd", "prettier", stop_after_first = true },
+  --      },
+  --    },
+  --  },
 
   { -- Autocompletion
     'hrsh7th/nvim-cmp',
@@ -734,7 +739,7 @@ require('lazy').setup({
           -- Manually trigger a completion from nvim-cmp.
           --  Generally you don't need this, because nvim-cmp will display
           --  completions whenever it has completion options available.
-          ['<C-Space>'] = cmp.mapping.complete {},
+          -- ['<C-Space>'] = cmp.mapping.complete {},
 
           -- Think of <c-l> as moving to the right of your snippet expansion.
           --  So if you have a snippet that's like:
@@ -870,7 +875,7 @@ require('lazy').setup({
   -- require 'kickstart.plugins.lint',
   -- require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
