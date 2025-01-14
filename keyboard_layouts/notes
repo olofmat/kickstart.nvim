@@ -4,3 +4,5 @@ setxkbmap -layout us,se_custom -option grp:win_space_toggle
 put us and se_custom in 
 
 /usr/share/X11/xkb/symbols/
+
+put .tmux.conf in /home/olof/
