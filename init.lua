@@ -11,6 +11,9 @@ vim.g.have_nerd_font = false
 -- See `:help vim.opt`
 -- NOTE: You can change these options as you wish!
 --  For more options, you can see `:help option-list`
+vim.opt["tabstop"] = 4
+vim.opt["shiftwidth"] = 4
+vim.expandtab = true
 
 -- Make line numbers default
 vim.opt.relativenumber = true
@@ -19,7 +22,7 @@ vim.opt.number = true
 --  Experiment for yourself to see if you like it!
 
 -- Enable mouse mode, can be useful for resizing splits for example!
-vim.opt.mouse = 'a'
+vim.opt.mouse = ""
 
 -- Don't show the mode, since it's already in the status line
 vim.opt.showmode = false
@@ -137,7 +140,7 @@ vim.opt.rtp:prepend(lazypath)
 -- NOTE: Here is where you install your plugins.
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
-  'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
+  -- 'tpope/vim-sleuth', -- Detect tabstop and shiftwidth automatically
   'tpope/vim-fugitive',
 
   -- NOTE: Plugins can also be added by using a table,
