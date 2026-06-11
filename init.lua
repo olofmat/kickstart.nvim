@@ -15,6 +15,14 @@ vim.opt["tabstop"] = 4
 vim.opt["shiftwidth"] = 4
 vim.expandtab = true
 
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "cpp",
+  callback = function()
+    vim.opt_local.expandtab = true
+    vim.opt_local.shiftwidth = 2
+    vim.opt_local.tabstop = 2
+  end,
+})
 -- Make line numbers default
 vim.opt.relativenumber = true
 vim.opt.number = true
@@ -58,6 +66,7 @@ vim.opt.timeoutlen = 300
 -- Configure how new splits should be opened
 vim.opt.splitright = true
 vim.opt.splitbelow = true
+vim.opt.wrap = false
 
 -- Sets how neovim will display certain whitespace characters in the editor.
 --  See `:help 'list'`
@@ -101,6 +110,10 @@ vim.keymap.set('n', 'Q', '<nop>')
 
 --  See `:help wincmd` for a list of all window commands
 vim.keymap.set('n', '<leader>pv', vim.cmd.Ex, { desc = 'Exit to file explorer' })
+
+vim.keymap.set('n', '<leader>gs', function()
+  vim.cmd('G | only')
+end, { desc = 'Git status (current window)' })
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
@@ -149,7 +162,10 @@ require('lazy').setup({
   --
   -- Use `opts = {}` to force a plugin to be loaded.
   --
-
+	{
+		'chrisbra/csv.vim',
+		ft = { 'csv' }
+	},
   {
     'ThePrimeagen/harpoon',
     branch = 'harpoon2',
@@ -287,6 +303,7 @@ require('lazy').setup({
   -- Use the `dependencies` key to specify the dependencies of a particular plugin
   {
     'github/copilot.vim',
+		enabled = false
   },
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
