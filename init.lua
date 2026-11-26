@@ -848,13 +848,19 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
-    branch = 'main',
+    -- The `main` branch requires Neovim 0.11+; older versions use the legacy `master` branch.
+    branch = vim.fn.has 'nvim-0.11' == 1 and 'main' or 'master',
     lazy = false,
     build = ':TSUpdate',
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     -- NOTE: Installing parsers requires the `tree-sitter` CLI and a C compiler.
     config = function()
-      require('nvim-treesitter').install { 'python', 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+      local langs = { 'python', 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+      if vim.fn.has 'nvim-0.11' == 0 then
+        require('nvim-treesitter.configs').setup { ensure_installed = langs, auto_install = true, highlight = { enable = true }, indent = { enable = true } }
+        return
+      end
+      require('nvim-treesitter').install(langs)
 
       vim.api.nvim_create_autocmd('FileType', {
         group = vim.api.nvim_create_augroup('kickstart-treesitter', { clear = true }),
