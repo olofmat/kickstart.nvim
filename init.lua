@@ -13,7 +13,7 @@ vim.g.have_nerd_font = false
 --  For more options, you can see `:help option-list`
 vim.opt["tabstop"] = 4
 vim.opt["shiftwidth"] = 4
-vim.expandtab = true
+vim.opt.expandtab = true
 
 -- Make line numbers default
 vim.opt.relativenumber = true
@@ -111,7 +111,7 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
-    vim.highlight.on_yank()
+    vim.hl.on_yank()
   end,
 })
 
@@ -208,7 +208,7 @@ require('lazy').setup({
 
   {
       'sindrets/diffview.nvim',
-      requires = 'nvim-lua/plenary.nvim'
+      dependencies = { 'nvim-lua/plenary.nvim' },
   },
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
   --
@@ -285,13 +285,9 @@ require('lazy').setup({
   -- you do for a plugin at the top level, you can do for a dependency.
   --
   -- Use the `dependencies` key to specify the dependencies of a particular plugin
-  {
-    'github/copilot.vim',
-  },
   { -- Fuzzy Finder (files, lsp, etc)
     'nvim-telescope/telescope.nvim',
     event = 'VimEnter',
-    branch = '0.1.x',
     dependencies = {
       'nvim-lua/plenary.nvim',
       { -- If encountering errors, see telescope-fzf-native README for installation instructions
@@ -403,18 +399,17 @@ require('lazy').setup({
     opts = {
       library = {
         -- Load luvit types when the `vim.uv` word is found
-        { path = 'luvit-meta/library', words = { 'vim%.uv' } },
+        { path = '${3rd}/luv/library', words = { 'vim%.uv' } },
       },
     },
   },
-  { 'Bilal2453/luvit-meta', lazy = true },
   {
     -- Main LSP Configuration
     'neovim/nvim-lspconfig',
     dependencies = {
       -- Automatically install LSPs and related tools to stdpath for Neovim
-      { 'williamboman/mason.nvim', config = true }, -- NOTE: Must be loaded before dependants
-      'williamboman/mason-lspconfig.nvim',
+      { 'mason-org/mason.nvim', opts = {} }, -- NOTE: Must be loaded before dependants
+      'mason-org/mason-lspconfig.nvim',
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
       -- Useful status updates for LSP.
@@ -510,7 +505,7 @@ require('lazy').setup({
           --
           -- When you move your cursor, the highlights will be cleared (the second autocommand).
           local client = vim.lsp.get_client_by_id(event.data.client_id)
-          if client and client.supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight) then
+          if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight, event.buf) then
             local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
               buffer = event.buf,
@@ -537,7 +532,7 @@ require('lazy').setup({
           -- code, if the language server you are using supports them
           --
           -- This may be unwanted, since they displace some of your code
-          if client and client.supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint) then
+          if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf) then
             map('<leader>th', function()
               vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
             end, '[T]oggle Inlay [H]ints')
@@ -573,6 +568,7 @@ require('lazy').setup({
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
         --
+        pylsp = {},
 
         lua_ls = {
           -- cmd = {...},
@@ -596,28 +592,20 @@ require('lazy').setup({
       --    :Mason
       --
       --  You can press `g?` for help in this menu.
-      require('mason').setup {}
-
       -- You can add other tools here that you want Mason to install
       -- for you, so that they are available from within Neovim.
       local ensure_installed = vim.tbl_keys(servers or {})
       vim.list_extend(ensure_installed, {
         'stylua', -- Used to format Lua code
+        'tree-sitter-cli', -- Needed by nvim-treesitter to build parsers
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
-      require('lspconfig').pylsp.setup {}
-      require('mason-lspconfig').setup {
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
-          end,
-        },
-      }
+
+      for name, server in pairs(servers) do
+        server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+        vim.lsp.config(name, server)
+        vim.lsp.enable(name)
+      end
     end,
   },
 
@@ -802,7 +790,7 @@ require('lazy').setup({
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
 
   { -- Collection of various small independent plugins/modules
-    'echasnovski/mini.nvim',
+    'nvim-mini/mini.nvim',
     config = function()
       -- Better Around/Inside textobjects
       --
@@ -840,22 +828,26 @@ require('lazy').setup({
   },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    branch = 'main',
+    lazy = false,
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
-    opts = {
-      ensure_installed = { 'python', 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
-      -- Autoinstall languages that are not installed
-      auto_install = true,
-      highlight = {
-        enable = true,
-        -- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
-        --  If you are experiencing weird indenting issues, add the language to
-        --  the list of additional_vim_regex_highlighting and disabled languages for indent.
-        additional_vim_regex_highlighting = { 'ruby' },
-      },
-      indent = { enable = true, disable = { 'ruby' } },
-    },
+    -- NOTE: Installing parsers requires the `tree-sitter` CLI and a C compiler.
+    config = function()
+      require('nvim-treesitter').install { 'python', 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' }
+
+      vim.api.nvim_create_autocmd('FileType', {
+        group = vim.api.nvim_create_augroup('kickstart-treesitter', { clear = true }),
+        callback = function(args)
+          local lang = vim.treesitter.language.get_lang(args.match)
+          if not lang or not vim.treesitter.language.add(lang) then
+            return
+          end
+          vim.treesitter.start(args.buf, lang)
+          vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+        end,
+      })
+    end,
     -- There are additional nvim-treesitter modules that you can use to interact
     -- with nvim-treesitter. You should go explore a few and see what interests you:
     --
@@ -886,7 +878,120 @@ require('lazy').setup({
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   --    For additional information, see `:help lazy.nvim-lazy.nvim-structuring-your-plugins`
   -- { import = 'custom.plugins' },
+
+  {
+    'CopilotC-Nvim/CopilotChat.nvim',
+    dependencies = {
+      { 'nvim-lua/plenary.nvim' },
+    },
+    build = 'make tiktoken', -- optional, for accurate token counting
+    opts = {
+      model = 'claude-opus-5.5', -- see :CopilotChatModels for the exact IDs your org exposes
+      auto_insert_mode = true,
+      window = {
+        layout = 'vertical',
+        width = 0.5,
+      },
+    },
+    window = {
+      title = "AI Assistant"
+    },
+    config = function(_, opts)
+      -- The built-in copilot provider is hardcoded to github.com. This provider logs in
+      -- against the Husqvarna GHE.com tenant instead (browser device flow, same as VS Code).
+      local ghe_host = 'husqvarnagroup.ghe.com'
+      local client_id = 'Iv1.b507a08c87ecfe98' -- GitHub Copilot OAuth app
+      local token_file = vim.fn.stdpath 'data' .. '/copilot_chat/ghe_oauth_token'
+      local curl = require 'CopilotChat.utils.curl'
+      local notify = require 'CopilotChat.utils.notify'
+      local copilot = require('CopilotChat.config.providers').copilot
+
+      local oauth_token
+      local function get_oauth_token()
+        if oauth_token then
+          return oauth_token
+        end
+        local f = io.open(token_file, 'r')
+        if f then
+          oauth_token = vim.trim(f:read '*a')
+          f:close()
+          if oauth_token ~= '' then
+            return oauth_token
+          end
+        end
+
+        local code = curl.post('https://' .. ghe_host .. '/login/device/code', {
+          json_response = true,
+          body = { client_id = client_id, scope = '' },
+          headers = { ['Accept'] = 'application/json' },
+        }).body
+        notify.publish(notify.MESSAGE, '[ghe] Visit ' .. code.verification_uri .. ' and enter code: ' .. code.user_code)
+        notify.publish(notify.STATUS, '[ghe] Waiting for authorization...')
+
+        while true do
+          require('plenary.async.util').sleep(code.interval * 1000)
+          local data = curl.post('https://' .. ghe_host .. '/login/oauth/access_token', {
+            json_response = true,
+            body = {
+              client_id = client_id,
+              device_code = code.device_code,
+              grant_type = 'urn:ietf:params:oauth:grant-type:device_code',
+            },
+            headers = { ['Accept'] = 'application/json' },
+          }).body
+          if data.access_token then
+            oauth_token = data.access_token
+            break
+          elseif data.error ~= 'authorization_pending' and data.error ~= 'slow_down' then
+            error('GHE auth error: ' .. (data.error or 'unknown'))
+          end
+        end
+
+        notify.publish(notify.MESSAGE, '')
+        notify.publish(notify.STATUS, '')
+        require('CopilotChat.utils').schedule_main()
+        vim.fn.mkdir(vim.fn.fnamemodify(token_file, ':h'), 'p')
+        vim.fn.writefile({ oauth_token }, token_file)
+        vim.uv.fs_chmod(token_file, tonumber('600', 8))
+        return oauth_token
+      end
+
+      local ghe = vim.tbl_extend('force', copilot, {
+          get_headers = function()
+            local response, err = curl.get('https://api.' .. ghe_host .. '/copilot_internal/v2/token', {
+              json_response = true,
+              headers = { ['Authorization'] = 'Token ' .. get_oauth_token() },
+            })
+            if err then
+              error(err)
+            end
+            local base_url = (response.body.endpoints and response.body.endpoints.api or 'https://copilot-api.' .. ghe_host):gsub('/$', '')
+            return {
+              ['Authorization'] = 'Bearer ' .. response.body.token,
+              ['Editor-Version'] = 'Neovim/' .. tostring(vim.version()),
+              ['Editor-Plugin-Version'] = 'CopilotChat.nvim/*',
+              ['Copilot-Integration-Id'] = 'vscode-chat',
+              ['x-github-api-version'] = '2025-10-01',
+              ['x-copilot-base-url'] = base_url,
+            },
+              response.body.expires_at
+          end,
+        })
+      ghe.get_info = nil -- copilot's get_info is hardcoded to api.github.com
+      opts.providers = { copilot = { disabled = true }, ghe = ghe }
+
+      require('CopilotChat').setup(opts)
+
+      -- Keymaps
+      vim.keymap.set('n', '<leader>cct', ':CopilotChatToggle<CR>', { noremap = true, silent = true, desc = 'CopilotChat Toggle' })
+      vim.keymap.set('n', '<leader>cce', ':CopilotChatExplain<CR>', { noremap = true, silent = true, desc = 'CopilotChat Explain' })
+      vim.keymap.set('n', '<leader>ccf', ':CopilotChatFix<CR>', { noremap = true, silent = true, desc = 'CopilotChat Fix' })
+      vim.keymap.set('n', '<leader>ccr', ':CopilotChatReview<CR>', { noremap = true, silent = true, desc = 'CopilotChat Review' })
+      vim.keymap.set('v', '<leader>cce', ':CopilotChatExplain<CR>', { noremap = true, silent = true, desc = 'CopilotChat Explain' })
+    end,
+  },
 }, {
+  rocks = { enabled = false },
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
     -- default lazy.nvim defined Nerd Font icons, otherwise define a unicode icons table
@@ -908,4 +1013,4 @@ require('lazy').setup({
   },
 })
 
--- vim: ts=2 sts=2 sw=2 et-
+-- vim: ts=2 sts=2 sw=2 et
